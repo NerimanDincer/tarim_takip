@@ -1,141 +1,192 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 import 'edit_profile_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final ApiService _apiService = ApiService();
+  late Future<Map<String, dynamic>> _userProfile;
+
+  @override
+  void initState() {
+    super.initState();
+    // Sayfa açılırken C# API'den gerçek verileri istiyoruz!
+    _userProfile = _apiService.getUserProfile();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.green[50],
       appBar: AppBar(
-        title: const Text("Profilim"),
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
-        elevation: 0,
+        title: const Text(
+          'Profilim',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Üstteki Yeşil Kısım ve Avatar
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.only(bottom: 30, top: 20),
-              decoration: const BoxDecoration(
-                color: Colors.green,
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
-              ),
-              child: const Column(
-                children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.white,
-                    child: Text(
-                      "N",
-                      style: TextStyle(
-                        fontSize: 40,
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 15),
-                  Text(
-                    "Neriman",
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  Text(
-                    "neri@tarimtakip.com",
-                    style: TextStyle(fontSize: 16, color: Colors.white70),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
+      body: FutureBuilder<Map<String, dynamic>>(
+        future: _userProfile,
+        builder: (context, snapshot) {
+          // 1. Veriler yoldaysa (Yükleniyor)
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(color: Colors.green),
+            );
+          }
+          // 2. Hata çıkarsa
+          else if (snapshot.hasError) {
+            return Center(child: Text("Hata: ${snapshot.error}"));
+          }
+          // 3. Veri gelmezse
+          else if (!snapshot.hasData) {
+            return const Center(child: Text("Profil bilgileri bulunamadı."));
+          }
 
-            // Bilgi Kartları
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  _buildProfileItem(Icons.badge, "Rol", "Sistem Yöneticisi"),
-                  _buildProfileItem(Icons.location_on, "Bölge", "Antalya"),
-                  _buildProfileItem(
-                    Icons.phone,
-                    "Telefon",
-                    "+90 555 123 45 67",
-                  ),
-                  const SizedBox(height: 20),
+          // 4. Veriler başarıyla geldiyse paketleri açıyoruz!
+          final profile = snapshot.data!;
 
-                  // Profili Düzenle Butonu
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        // Düzenleme sayfasına bilet kestik!
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                const ProfilDuzenlemeSayfasi(),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.edit, color: Colors.green),
-                      label: const Text(
-                        "Profili Düzenle",
-                        style: TextStyle(color: Colors.green, fontSize: 16),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.green, width: 2),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
+          // API'den gelen anahtarları güvene alıyoruz (null gelme ihtimaline karşı ??)
+          final String fullName = profile['fullName'] ?? 'Değerli Çiftçi';
+          final String email = profile['email'] ?? 'Belirtilmemiş';
+          final String phone = profile['phone'] ?? 'Belirtilmemiş';
+          final String bio = profile['bio'] ?? '';
+
+          // Not: C# tarafı region'u direkt isim olarak mı döndürüyor (regionName) yoksa obje olarak mı emin olmak için ikisine de baktık
+          final String region =
+              profile['regionName'] ??
+              profile['region'] ??
+              'Bölge Belirtilmemiş';
+
+          // Avatar için ismin ilk harfini alıyoruz
+          final String initial = fullName.isNotEmpty
+              ? fullName[0].toUpperCase()
+              : 'Ç';
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              children: [
+                const SizedBox(height: 20),
+                // --- AVATAR KISMI ---
+                Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    CircleAvatar(
+                      radius: 60,
+                      backgroundColor: Colors.green,
+                      child: Text(
+                        initial,
+                        style: const TextStyle(
+                          fontSize: 50,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // --- İSİM ---
+                Text(
+                  fullName,
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 30),
+
+                // --- BİLGİ KARTLARI ---
+                _buildProfileItem(Icons.email, "E-posta", email),
+                const SizedBox(height: 15),
+                _buildProfileItem(Icons.phone, "Telefon Numarası", phone),
+                const SizedBox(height: 15),
+                _buildProfileItem(Icons.map, "Kayıtlı Bölge", region),
+
+                const SizedBox(height: 40),
+
+                // --- DÜZENLE BUTONU ---
+                SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      final bool? guncellendiMi = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => EditProfileScreen(
+                            currentName: fullName,
+                            currentPhone: phone,
+                            currentEmail: email,
+                            currentBio:
+                                bio, // BİYOGRAFİYİ DE YOLLUYORUZ Kİ KUTU DOLU GELSİN!
+                          ),
+                        ),
+                      );
+
+                      if (guncellendiMi == true) {
+                        setState(() {
+                          _userProfile = _apiService.getUserProfile();
+                        });
+                      }
+                    },
+                    icon: const Icon(Icons.edit, color: Colors.white),
+                    label: const Text(
+                      "PROFİLİ DÜZENLE",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
-  // Kart tasarımı için yardımcı fonksiyon
-  Widget _buildProfileItem(IconData icon, String title, String subtitle) {
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.only(bottom: 15),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+  // Bilgi kutucuklarını çizen yardımcı tasarım kodumuz
+  Widget _buildProfileItem(IconData icon, String title, String value) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 5, offset: Offset(0, 3)),
+        ],
+      ),
       child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.green[100],
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: Colors.green),
-        ),
+        leading: Icon(icon, color: Colors.green, size: 30),
         title: Text(
           title,
-          style: const TextStyle(color: Colors.grey, fontSize: 14),
+          style: const TextStyle(fontSize: 14, color: Colors.grey),
         ),
         subtitle: Text(
-          subtitle,
+          value,
           style: const TextStyle(
-            color: Colors.black87,
             fontSize: 16,
             fontWeight: FontWeight.bold,
+            color: Colors.black87,
           ),
         ),
       ),

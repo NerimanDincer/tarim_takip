@@ -5,7 +5,7 @@ import '../models/farm_field_model.dart';
 
 class ApiService {
   // Backend IP adresin
-  static const String baseUrl = 'http://***.***.*.***:5256/api';
+  static const String baseUrl = 'http://192.168.1.101:5256/api';
 
   // --- TOKEN OKUMA YARDIMCISI (YENİ) ---
   // Telefonun hafızasındaki token'ı okuyan küçük bir yardımcı fonksiyon
@@ -38,12 +38,13 @@ class ApiService {
         return "E-posta veya şifre hatalı! (Hata Kodu: ${response.statusCode})";
       }
     } catch (e) {
-      return "Sunucuya bağlanılamadı. İnternetini veya API'yi kontrol et.";
+      // BURAYI DEĞİŞTİRDİK! Artık kendi uydurduğumuz mesajı değil, hatanın GERÇEK SEBEBİNİ ekrana basacağız.
+      print('KRİTİK HATA DETAYI: $e'); // Bunu VS Code terminalinde görmek için
+      return "SİSTEM HATASI: $e"; // Bunu da telefonun ekranında (kırmızı uyarıda) görmek için
     }
   }
 
-  // --- KAYIT OLMA METODU ---
-  // --- KAYIT OLMA METODU (DÜZELTİLDİ) ---
+  // --- KAYIT OLMA METODU
   Future<String?> register(
     String fullName,
     String email,
@@ -235,6 +236,41 @@ class ApiService {
     } catch (e) {
       print('Tarla eklenirken hata: $e');
       return false;
+    }
+  }
+
+  // --- PROFİL GÜNCELLEME METODU ---
+  // --- PROFİL GÜNCELLEME METODU ---
+  Future<String?> updateProfile(
+    String fullName,
+    String phone,
+    String bio,
+  ) async {
+    // bio eklendi!
+    final token = await _getToken();
+    if (token == null) return "Sisteme giriş yapılmamış.";
+
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/User/profile'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'fullName': fullName,
+          'phone': phone,
+          'bio': bio, // İŞTE BU EKSİKTİ! Artık biyografi de gidiyor.
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        return null;
+      } else {
+        return "Güncelleme başarısız! (Hata: ${response.statusCode})";
+      }
+    } catch (e) {
+      return "Sunucuya bağlanılamadı. İnternetini kontrol et.";
     }
   }
 }

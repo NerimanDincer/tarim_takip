@@ -1,28 +1,44 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
+import 'package:flutter/services.dart';
 
-class ProfilDuzenlemeSayfasi extends StatefulWidget {
-  const ProfilDuzenlemeSayfasi({super.key});
+class EditProfileScreen extends StatefulWidget {
+  final String currentName;
+  final String currentPhone;
+  final String currentEmail; // E-postayı da aldık
+  final String currentBio;
+
+  const EditProfileScreen({
+    super.key,
+    required this.currentName,
+    required this.currentPhone,
+    required this.currentEmail,
+    required this.currentBio,
+  });
 
   @override
-  State<ProfilDuzenlemeSayfasi> createState() => _ProfilDuzenlemeSayfasiState();
+  State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
-class _ProfilDuzenlemeSayfasiState extends State<ProfilDuzenlemeSayfasi> {
+class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
+  final ApiService _apiService = ApiService();
 
-  final TextEditingController _nameController = TextEditingController(
-    text: "Neriman",
-  );
-  final TextEditingController _phoneController = TextEditingController(
-    text: "5551234567",
-  );
-  final TextEditingController _bioController = TextEditingController(
-    text: "Akdeniz Üniversitesi - Sistem Yöneticisi",
-  );
-  // E-posta controller'ı ekledik
-  final TextEditingController _emailController = TextEditingController(
-    text: "neri@tarimtakip.com",
-  );
+  late TextEditingController _nameController;
+  late TextEditingController _phoneController;
+  late TextEditingController _emailController;
+  late TextEditingController _bioController;
+
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.currentName);
+    _phoneController = TextEditingController(text: widget.currentPhone);
+    _emailController = TextEditingController(text: widget.currentEmail);
+    _bioController = TextEditingController(text: widget.currentBio);
+  }
 
   // Alttan açılan Resim Seçme Menüsü
   void _resimSecmeMenusuGoster() {
@@ -46,7 +62,7 @@ class _ProfilDuzenlemeSayfasiState extends State<ProfilDuzenlemeSayfasi> {
                 leading: const Icon(Icons.photo_camera, color: Colors.green),
                 title: const Text('Kamerayı Aç'),
                 onTap: () {
-                  Navigator.pop(context); // Menüyü kapat
+                  Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("Kamera açılıyor... 📸")),
                   );
@@ -81,6 +97,11 @@ class _ProfilDuzenlemeSayfasiState extends State<ProfilDuzenlemeSayfasi> {
 
   @override
   Widget build(BuildContext context) {
+    // İsmin ilk harfini alıyoruz avatar için
+    final String initial = _nameController.text.isNotEmpty
+        ? _nameController.text[0].toUpperCase()
+        : 'Ç';
+
     return Scaffold(
       backgroundColor: Colors.green[50],
       appBar: AppBar(
@@ -98,12 +119,12 @@ class _ProfilDuzenlemeSayfasiState extends State<ProfilDuzenlemeSayfasi> {
               Stack(
                 alignment: Alignment.bottomRight,
                 children: [
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 60,
                     backgroundColor: Colors.white,
                     child: Text(
-                      "N",
-                      style: TextStyle(
+                      initial,
+                      style: const TextStyle(
                         fontSize: 50,
                         color: Colors.green,
                         fontWeight: FontWeight.bold,
@@ -111,7 +132,7 @@ class _ProfilDuzenlemeSayfasiState extends State<ProfilDuzenlemeSayfasi> {
                     ),
                   ),
                   InkWell(
-                    onTap: _resimSecmeMenusuGoster, // Tıklanınca menü açılır!
+                    onTap: _resimSecmeMenusuGoster,
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: const BoxDecoration(
@@ -132,10 +153,8 @@ class _ProfilDuzenlemeSayfasiState extends State<ProfilDuzenlemeSayfasi> {
               // 1. E-posta (KİLİTLİ / SADECE OKUNABİLİR)
               TextFormField(
                 controller: _emailController,
-                readOnly: true, // İŞTE MAYIN TARLASINI BURADAN KAPATTIK!
-                style: const TextStyle(
-                  color: Colors.grey,
-                ), // Rengini soluk yaptık ki değiştirilemeyeceği anlaşılsın
+                readOnly: true,
+                style: const TextStyle(color: Colors.grey),
                 decoration: _buildInput("E-posta (Değiştirilemez)", Icons.lock),
               ),
               const SizedBox(height: 20),
@@ -150,13 +169,26 @@ class _ProfilDuzenlemeSayfasiState extends State<ProfilDuzenlemeSayfasi> {
               const SizedBox(height: 20),
 
               // 3. Telefon
+              // 3. TELEFON (KORUMA GÖREVLİLERİ EKLENDİ!)
               TextFormField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
+                // KORUMA GÖREVLİLERİ (InputFormatters) SADECE RAKAM VE MAKSİMUM 11 HANE!
+                inputFormatters: [
+                  FilteringTextInputFormatter
+                      .digitsOnly, // Harf yazılmasını kesin olarak engeller!
+                  LengthLimitingTextInputFormatter(
+                    11,
+                  ), // 11 haneden fazla girilemez!
+                ],
                 decoration: _buildInput("Telefon Numarası", Icons.phone),
-                validator: (value) => (value == null || value.length < 10)
-                    ? 'Geçerli bir numara girin'
-                    : null,
+                validator: (value) {
+                  if (value == null || value.isEmpty)
+                    return 'Telefon boş bırakılamaz';
+                  if (value.length < 10)
+                    return 'Geçerli bir telefon numarası girin (En az 10 hane)';
+                  return null;
+                },
               ),
               const SizedBox(height: 20),
 
@@ -171,36 +203,65 @@ class _ProfilDuzenlemeSayfasiState extends State<ProfilDuzenlemeSayfasi> {
               ),
               const SizedBox(height: 40),
 
-              // Kaydet Butonu
+              // Kaydet Butonu (API BAĞLANTILI)
+              // KAYDET BUTONU
               SizedBox(
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      FocusScope.of(context).unfocus();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Profil bilgileriniz güncellendi! ✅"),
-                        ),
-                      );
-                      Navigator.pop(context);
-                    }
-                  },
+                  onPressed: _isLoading
+                      ? null
+                      : () async {
+                          if (_formKey.currentState!.validate()) {
+                            FocusScope.of(context).unfocus();
+                            setState(() => _isLoading = true);
+
+                            // GERÇEK API GÜNCELLEMESİ (BİYOGRAFİ DE GİDİYOR!)
+                            String? error = await _apiService.updateProfile(
+                              _nameController.text.trim(),
+                              _phoneController.text.trim(),
+                              _bioController.text.trim(), // Biyografi eklendi!
+                            );
+
+                            setState(() => _isLoading = false);
+
+                            if (error == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    "Profil bilgileriniz güncellendi! ✅",
+                                  ),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                              Navigator.pop(context, true);
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(error),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor:
+                        Colors.green, // Rengi temanla uyumlu yeşil yaptık
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
                     ),
                   ),
-                  child: const Text(
-                    "GÜNCELLEMELERİ KAYDET",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          "GÜNCELLEMELERİ KAYDET",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
             ],
