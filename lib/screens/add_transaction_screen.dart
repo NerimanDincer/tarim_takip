@@ -26,6 +26,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final List<String> _costTypes = [
     'Gübre',
     'Tohum',
+    'Fidan',
     'İlaç',
     'Yakıt',
     'İşçilik',
@@ -283,7 +284,18 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
     String? error;
     // YENİ: C#'ın tam istediği Saat/Zaman formatı (UTC)
-    String formattedDate = _selectedDate.toUtc().toIso8601String();
+    // Seçilen gün, ay, yıla; şu anki saati ve dakikayı ekliyoruz!
+    DateTime now = DateTime.now();
+    DateTime finalDate = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      now.hour,
+      now.minute,
+      now.second,
+    );
+
+    String formattedDate = finalDate.toUtc().toIso8601String();
 
     if (_isExpense) {
       error = await _apiService.addExpense(

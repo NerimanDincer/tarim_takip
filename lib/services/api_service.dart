@@ -5,7 +5,7 @@ import '../models/farm_field_model.dart';
 
 class ApiService {
   // Backend IP adresin
-  static const String baseUrl = 'http://192.168.1.101:5256/api';
+  static const String baseUrl = 'http://192.168.1.102:5256/api';
 
   // --- TOKEN OKUMA YARDIMCISI (YENİ) ---
   // Telefonun hafızasındaki token'ı okuyan küçük bir yardımcı fonksiyon
@@ -240,7 +240,6 @@ class ApiService {
   }
 
   // --- PROFİL GÜNCELLEME METODU ---
-  // --- PROFİL GÜNCELLEME METODU ---
   Future<String?> updateProfile(
     String fullName,
     String phone,
@@ -271,6 +270,202 @@ class ApiService {
       }
     } catch (e) {
       return "Sunucuya bağlanılamadı. İnternetini kontrol et.";
+    }
+  }
+
+  // --- FİNANSAL RAPOR BİLGİLERİNİ ÇEKME ---
+  Future<Map<String, dynamic>> getFinancialReport() async {
+    final token = await _getToken();
+    if (token == null) throw Exception("Sisteme giriş yapılmamış.");
+
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/Report/general'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        // C#'tan gelen JSON verisini alıp Flutter'ın anlayacağı Map'e çeviriyoruz
+        return jsonDecode(response.body);
+      } else {
+        throw Exception("Rapor verisi alınamadı. Hata: ${response.statusCode}");
+      }
+    } catch (e) {
+      throw Exception("Sunucuya bağlanılamadı: $e");
+    }
+  }
+
+  // --- GİDER (MASRAF) EKLEME ---
+  Future<String?> addExpense(
+    int farmFieldId,
+    String costType,
+    double amount,
+    String note,
+    String date,
+  ) async {
+    final token = await _getToken();
+    if (token == null) return "Giriş yapılmamış.";
+
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/farmfield/$farmFieldId/expense'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'costType': costType,
+          'amount': amount,
+          'date': date, // ARTIK SEÇTİĞİMİZ TARİH GİDİYOR!
+          'note': note,
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) return null;
+      return "Gider eklenemedi (Hata: ${response.statusCode})";
+    } catch (e) {
+      return "Sunucu bağlantı hatası.";
+    }
+  }
+
+  // --- GELİR (SATIŞ) EKLEME ---
+  Future<String?> addSale(
+    int farmFieldId,
+    double amountKg,
+    double unitPrice,
+    String date,
+  ) async {
+    final token = await _getToken();
+    if (token == null) return "Giriş yapılmamış.";
+
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/farmfield/$farmFieldId/sale'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'amountKg': amountKg,
+          'unitPrice': unitPrice,
+          'date': date, // ARTIK SEÇTİĞİMİZ TARİH GİDİYOR!
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) return null;
+      return "Gelir eklenemedi (Hata: ${response.statusCode})";
+    } catch (e) {
+      return "Sunucu bağlantı hatası.";
+    }
+  }
+
+  // --- GİDER (MASRAF) GEÇMİŞİNİ ÇEKME ---
+  Future<List<dynamic>> getExpenses(int farmFieldId) async {
+    final token = await _getToken();
+    if (token == null) return [];
+
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/farmfield/$farmFieldId/expense'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // --- GELİR (SATIŞ) GEÇMİŞİNİ ÇEKME ---
+  Future<List<dynamic>> getSales(int farmFieldId) async {
+    final token = await _getToken();
+    if (token == null) return [];
+
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/farmfield/$farmFieldId/sale'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // --- SATIŞ SİLME (Soft Delete) ---
+  Future<String?> deleteSale(int saleId) async {
+    final token = await _getToken();
+    if (token == null) return "Giriş yapılmamış.";
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/farmfield/sale/$saleId'), // C#'taki rotamız
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (response.statusCode == 200) return null; // Hata yok, başarılı!
+      return "Silinemedi (Hata Kodu: ${response.statusCode})";
+    } catch (e) {
+      return "Sunucu bağlantı hatası.";
+    }
+  }
+
+  // --- GİDER SİLME (Soft Delete) ---
+  Future<String?> deleteExpense(int expenseId) async {
+    final token = await _getToken();
+    if (token == null) return "Giriş yapılmamış.";
+    try {
+      final response = await http.delete(
+        Uri.parse(
+          '$baseUrl/expense/$expenseId',
+        ), // C#'taki rotamız (Biraz farklıydı hatırlarsan)
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (response.statusCode == 200) return null;
+      return "Silinemedi (Hata Kodu: ${response.statusCode})";
+    } catch (e) {
+      return "Sunucu bağlantı hatası.";
+    }
+  }
+
+  // --- SULAMA SİLME (Soft Delete) ---
+  Future<String?> deleteIrrigation(int id) async {
+    final token = await _getToken();
+    if (token == null) return "Giriş yapılmamış.";
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/farmfield/irrigation/$id'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (response.statusCode == 200) return null;
+      return "Silinemedi (Hata: ${response.statusCode})";
+    } catch (e) {
+      return "Sunucu bağlantı hatası.";
+    }
+  }
+
+  // --- TARLA SİLME (Soft Delete) ---
+  Future<String?> deleteFarmField(int farmFieldId) async {
+    final token = await _getToken();
+    if (token == null) return "Giriş yapılmamış.";
+
+    try {
+      final response = await http.delete(
+        Uri.parse(
+          '$baseUrl/farmfield/$farmFieldId',
+        ), // C#'ta yazdığımız yeni uç
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) return null; // Hata yok, tarla silindi!
+      return "Tarla silinemedi (Hata Kodu: ${response.statusCode})";
+    } catch (e) {
+      return "Sunucu bağlantı hatası.";
     }
   }
 }

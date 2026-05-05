@@ -8,6 +8,7 @@ import 'screens/irrigation_screen.dart';
 import 'screens/add_product_screen.dart';
 import 'screens/irrigation_list_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'screens/financial_report_screen.dart';
 
 void main() {
   runApp(const TarimTakipApp());
@@ -208,54 +209,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
                   title: const Text('Notlarım & Takvim'),
                   onTap: () => Navigator.pop(context),
                 ),
-                ListTile(
-                  leading: const Icon(
-                    Icons.question_answer,
-                    color: Colors.green,
-                  ),
-                  title: const Text('Danışmanlık & Sorular'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          "Soru-Cevap bölümü yakında aktif olacak! 🧑‍🌾",
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.article, color: Colors.green),
-                  title: const Text('Uzman Makaleleri (Blog)'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Blog yazıları yakında aktif olacak! 📖"),
-                      ),
-                    );
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.chat, color: Colors.green),
-                  title: const Text('Mühendis ile Sohbet (DM)'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          "Direkt mesajlaşma yakında aktif olacak! 💬",
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.map, color: Colors.green),
-                  title: const Text('Türkiye Tarım Haritası'),
-                  onTap: () => Navigator.pop(context),
-                ),
+
                 const Divider(),
                 ListTile(
                   leading: const Icon(Icons.logout, color: Colors.red),
@@ -488,7 +442,12 @@ class _AnaSayfaState extends State<AnaSayfa> {
                         "Takvim & Notlar",
                         Colors.red,
                       ),
-                      _menuKutu(context, Icons.map, "Harita", Colors.teal),
+                      _menuKutu(
+                        context,
+                        Icons.pie_chart_rounded, // Yepyeni grafik ikonumuz
+                        "Finans ve Rapor", // Yeni başlığımız
+                        Colors.blueGrey, // Daha kurumsal bir renk
+                      ),
                     ],
                   ),
                 ),
@@ -531,11 +490,17 @@ class _AnaSayfaState extends State<AnaSayfa> {
               ),
             );
           } else if (baslik == "Ürün Ekle") {
-            // Uyarı: add_product_screen.dart içindeki sınıfın adı UrunEkleSayfasi olmalı.
-            // Navigator.push(context, MaterialPageRoute(builder: (context) => const UrunEkleSayfasi()));
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text("Ürün Ekle sayfası yakında eklenecek! 🚜"),
+              ),
+            );
+          } else if (baslik == "Finans ve Rapor") {
+            // SnackBar'ı sildik, yerine gerçek sayfaya geçişi koyduk!
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const FinancialReportScreen(),
               ),
             );
           } else {

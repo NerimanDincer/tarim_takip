@@ -17,17 +17,16 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
   @override
   void initState() {
     super.initState();
-    // Sayfa açılır açılmaz gerçek tarlaları API'den çekiyoruz
     _futureFields = _apiService.getFarmFields();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.green[50], // Kahverengi gitti, Yeşil geldi!
+      backgroundColor: Colors.green[50],
       appBar: AppBar(
         title: const Text("Tarlalarım Listesi"),
-        backgroundColor: Colors.green, // Kahverengi gitti, Yeşil geldi!
+        backgroundColor: Colors.green,
         foregroundColor: Colors.white,
       ),
       body: FutureBuilder<List<FarmField>>(
@@ -40,7 +39,6 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
           } else if (snapshot.hasError) {
             return Center(child: Text("Hata: ${snapshot.error}"));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            // HİÇ TARLA YOKSA GÖRÜNECEK ŞIK UYARI!
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
@@ -50,13 +48,13 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
                     const Icon(Icons.grass, size: 80, color: Colors.grey),
                     const SizedBox(height: 20),
                     const Text(
-                      "Henüz hiç tarla eklememişsiniz.",
+                      "Henüz hiç tarla eklememişsiniz veya tümünü sildiniz.",
                       style: TextStyle(fontSize: 18, color: Colors.black54),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 10),
                     const Text(
-                      "Sağ alttaki butona tıklayarak ilk tarlanızı sisteme kaydedebilirsiniz! 🌱",
+                      "Sağ alttaki butona tıklayarak yeni tarlanızı sisteme kaydedebilirsiniz! 🌱",
                       style: TextStyle(fontSize: 14, color: Colors.green),
                       textAlign: TextAlign.center,
                     ),
@@ -141,10 +139,36 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
                       ],
                     ),
                   ),
-                  trailing: const Icon(
-                    Icons.arrow_forward_ios,
-                    color: Colors.green,
-                    size: 16,
+                  // --- İŞTE YENİ DÜZENLE VE SİL BUTONLARIMIZ ---
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.edit_outlined,
+                          color: Colors.blue,
+                        ),
+                        tooltip: "Tarlayı Düzenle",
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                "Tarla düzenleme formu eklenecek! ✏️",
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.red,
+                        ),
+                        tooltip: "Tarlayı Arşive Kaldır",
+                        onPressed: () =>
+                            _confirmDelete(context, tarla.id), // Silme onayı!
+                      ),
+                    ],
                   ),
                   onTap: () {
                     // İleride tarlanın detaylarına veya masraf/satış sayfalarına gitmek için bilet keseceğimiz yer
@@ -157,13 +181,11 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
-          // AWAIT kelimesi hayat kurtarır! Sayfanın kapanmasını ve işlemin bitmesini kesin olarak bekler.
           await Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const AddFieldScreen()),
           );
-
-          // Sayfa kapandıktan HEMEN SONRA bu kod çalışır ve listeyi günceller!
+          // İleri geri yapmadan otomatik yenileme
           setState(() {
             _futureFields = _apiService.getFarmFields();
           });
@@ -174,6 +196,75 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
           "Yeni Tarla Ekle",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
+      ),
+    );
+  }
+
+  // --- TARLA SİLME ONAY PENCERESİ VE İŞLEMİ ---
+  void _confirmDelete(BuildContext context, int farmFieldId) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange),
+            SizedBox(width: 10),
+            Text("Emin misiniz?"),
+          ],
+        ),
+        content: const Text(
+          "Bu tarlayı silmek istediğinize emin misiniz? Tarla silindiğinde finans ve sulama kayıtlarınız da arşivlenir (veri kaybı yaşanmaz).",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("İptal", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx); // Uyarıyı kapat
+
+              try {
+                String? error = await _apiService.deleteFarmField(farmFieldId);
+
+                if (error == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Tarla başarıyla arşive kaldırıldı! 🗑️"),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  // ŞARTSIZ, KOŞULSUZ LİSTEYİ ANINDA YENİLE!
+                  setState(() {
+                    _futureFields = _apiService.getFarmFields();
+                  });
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(error), backgroundColor: Colors.red),
+                  );
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("Bağlantı Hatası: $e"),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text(
+              "Evet, Sil",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
       ),
     );
   }
