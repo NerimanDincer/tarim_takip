@@ -25,7 +25,7 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
     return Scaffold(
       backgroundColor: Colors.green[50],
       appBar: AppBar(
-        title: const Text("Tarlalarım Listesi"),
+        title: const Text("Tarlalarım Listesi DENEMEEEEEE"),
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
       ),
@@ -39,29 +39,7 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
           } else if (snapshot.hasError) {
             return Center(child: Text("Hata: ${snapshot.error}"));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.grass, size: 80, color: Colors.grey),
-                    const SizedBox(height: 20),
-                    const Text(
-                      "Henüz hiç tarla eklememişsiniz veya tümünü sildiniz.",
-                      style: TextStyle(fontSize: 18, color: Colors.black54),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      "Sağ alttaki butona tıklayarak yeni tarlanızı sisteme kaydedebilirsiniz! 🌱",
-                      style: TextStyle(fontSize: 14, color: Colors.green),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            );
+            return _buildEmptyState();
           }
 
           final tarlalar = snapshot.data!;
@@ -118,61 +96,20 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
                             Text(tarla.plantName),
                           ],
                         ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.location_on,
-                              size: 16,
-                              color: Colors.green,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              "${tarla.city} / ${tarla.county}",
-                              style: TextStyle(
-                                color: Colors.green[700],
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
                       ],
                     ),
                   ),
-                  // --- İŞTE YENİ DÜZENLE VE SİL BUTONLARIMIZ ---
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.edit_outlined,
-                          color: Colors.blue,
-                        ),
-                        tooltip: "Tarlayı Düzenle",
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                "Tarla düzenleme formu eklenecek! ✏️",
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.delete_outline,
-                          color: Colors.red,
-                        ),
-                        tooltip: "Tarlayı Arşive Kaldır",
-                        onPressed: () =>
-                            _confirmDelete(context, tarla.id), // Silme onayı!
-                      ),
-                    ],
+                  trailing: IconButton(
+                    icon: const Icon(
+                      Icons.info_outline,
+                      color: Colors.green,
+                      size: 28,
+                    ),
+                    onPressed: () => _detayPenceresiGoster(
+                      context,
+                      tarla,
+                    ), // Butona basınca detaylar açılacak!
                   ),
-                  onTap: () {
-                    // İleride tarlanın detaylarına veya masraf/satış sayfalarına gitmek için bilet keseceğimiz yer
-                  },
                 ),
               );
             },
@@ -185,7 +122,6 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
             context,
             MaterialPageRoute(builder: (context) => const AddFieldScreen()),
           );
-          // İleri geri yapmadan otomatik yenileme
           setState(() {
             _futureFields = _apiService.getFarmFields();
           });
@@ -197,6 +133,195 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
+    );
+  }
+
+  // BOŞ EKRAN TASARIMI
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Icon(Icons.grass, size: 80, color: Colors.grey),
+            SizedBox(height: 20),
+            Text(
+              "Henüz hiç tarla eklememişsiniz veya tümünü sildiniz.",
+              style: TextStyle(fontSize: 18, color: Colors.black54),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 10),
+            Text(
+              "Sağ alttaki butona tıklayarak yeni tarlanızı sisteme kaydedebilirsiniz! 🌱",
+              style: TextStyle(fontSize: 14, color: Colors.green),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- SULAMA VE FİNANSTAKİ GİBİ ALTTAN AÇILAN DETAY PENCERESİ ---
+  void _detayPenceresiGoster(BuildContext context, FarmField tarla) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 50,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Row(
+                  children: [
+                    Icon(Icons.landscape, color: Colors.green, size: 30),
+                    SizedBox(width: 10),
+                    Text(
+                      "Tarla Detayı",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 30),
+
+                _detaySatiri(Icons.label_outline, "Tarla Adı:", tarla.name),
+                const SizedBox(height: 15),
+                _detaySatiri(
+                  Icons.straighten,
+                  "Büyüklük:",
+                  "${tarla.area} Dönüm",
+                ),
+                const SizedBox(height: 15),
+                _detaySatiri(
+                  Icons.local_florist,
+                  "Ekili Ürün:",
+                  tarla.plantName,
+                ),
+                const SizedBox(height: 15),
+                _detaySatiri(
+                  Icons.location_on,
+                  "Konum:",
+                  "${tarla.city} / ${tarla.county}",
+                ),
+
+                const SizedBox(height: 30),
+                // --- SİL, DÜZENLE VE KAPAT BUTONLARI YAN YANA ---
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red[50],
+                          foregroundColor: Colors.red,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        icon: const Icon(Icons.delete_outline),
+                        label: const Text(
+                          "Sil",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        onPressed: () => _confirmDelete(context, tarla.id),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue[50],
+                          foregroundColor: Colors.blue,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        icon: const Icon(Icons.edit_outlined),
+                        label: const Text(
+                          "Düzenle",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                "Tarla düzenleme formu eklenecek! ✏️",
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 1,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blueGrey,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: const Icon(Icons.close),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _detaySatiri(IconData ikon, String baslik, String deger) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(ikon, color: Colors.grey[600], size: 20),
+        const SizedBox(width: 10),
+        Text(baslik, style: TextStyle(color: Colors.grey[700], fontSize: 16)),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            deger,
+            textAlign: TextAlign.right,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+        ),
+      ],
     );
   }
 
@@ -229,7 +354,8 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
               ),
             ),
             onPressed: () async {
-              Navigator.pop(ctx); // Uyarıyı kapat
+              Navigator.pop(ctx);
+              Navigator.pop(context); // Detay penceresini de kapat
 
               try {
                 String? error = await _apiService.deleteFarmField(farmFieldId);
@@ -241,7 +367,6 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
                       backgroundColor: Colors.green,
                     ),
                   );
-                  // ŞARTSIZ, KOŞULSUZ LİSTEYİ ANINDA YENİLE!
                   setState(() {
                     _futureFields = _apiService.getFarmFields();
                   });

@@ -525,7 +525,6 @@ class _AnaSayfaState extends State<AnaSayfa> {
   }
 }
 
-// --- BURASI YENİ TARLALARIM SAYFASI ---
 class TarlalarimSayfasi extends StatefulWidget {
   const TarlalarimSayfasi({super.key});
   @override

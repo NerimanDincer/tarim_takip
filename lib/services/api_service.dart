@@ -5,7 +5,7 @@ import '../models/farm_field_model.dart';
 
 class ApiService {
   // Backend IP adresin
-  static const String baseUrl = 'http://192.168.1.102:5256/api';
+  static const String baseUrl = 'http://192.168.1.106:5256/api';
 
   // --- TOKEN OKUMA YARDIMCISI (YENİ) ---
   // Telefonun hafızasındaki token'ı okuyan küçük bir yardımcı fonksiyon
