@@ -229,13 +229,20 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         const SizedBox(height: 20),
         TextFormField(
           controller: _expenseAmountController,
-          keyboardType: TextInputType.number,
+          keyboardType:
+              TextInputType.number, // Telefonda sadece rakam klavyesini açar
+          validator: (value) {
+            if (value == null || value.isEmpty) return 'Tutar giriniz';
+            // Eğer kullanıcı inatla harf girerse çökmesin, bu uyarıyı versin:
+            if (double.tryParse(value) == null)
+              return 'Lütfen sadece geçerli bir sayı girin!';
+            return null;
+          },
           decoration: const InputDecoration(
             labelText: "Tutar (₺)",
             border: OutlineInputBorder(),
             prefixIcon: Icon(Icons.money_off, color: Colors.red),
           ),
-          validator: (val) => val!.isEmpty ? 'Tutar giriniz' : null,
         ),
         const SizedBox(height: 20),
         TextFormField(

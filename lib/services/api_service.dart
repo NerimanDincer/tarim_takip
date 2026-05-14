@@ -5,9 +5,8 @@ import '../models/farm_field_model.dart';
 
 class ApiService {
   // Backend IP adresin
-  static const String baseUrl = 'http://192.168.1.106:5256/api';
+  static const String baseUrl = 'http://192.168.1.102:5256/api';
 
-  // --- TOKEN OKUMA YARDIMCISI (YENİ) ---
   // Telefonun hafızasındaki token'ı okuyan küçük bir yardımcı fonksiyon
   Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -466,6 +465,93 @@ class ApiService {
       return "Tarla silinemedi (Hata Kodu: ${response.statusCode})";
     } catch (e) {
       return "Sunucu bağlantı hatası.";
+    }
+  }
+
+  // --- GÜBRELEME VERİLERİNİ GETİR ---
+  Future<List<dynamic>> getFertilizations(int farmFieldId) async {
+    try {
+      final token = await _getToken();
+      if (token == null) throw Exception('Token bulunamadı');
+      final response = await http.get(
+        Uri.parse('$baseUrl/farmfield/$farmFieldId/fertilization'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Hata Kodu: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Bağlantı hatası: $e');
+    }
+  }
+
+  // --- YENİ GÜBRELEME KAYDI EKLE ---
+  Future<bool> createFertilization(
+    int farmFieldId,
+    String date,
+    String description,
+  ) async {
+    final token = await _getToken();
+    if (token == null) return false;
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/farmfield/$farmFieldId/fertilization'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'date': date,
+          'description': description, // Hangi gübreden ne kadar atıldığı
+        }),
+      );
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // --- GÜBRELEME SİLME (Soft Delete) ---
+  Future<String?> deleteFertilization(int id) async {
+    final token = await _getToken();
+    if (token == null) return "Giriş yapılmamış.";
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/farmfield/fertilization/$id'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (response.statusCode == 200) return null;
+      return "Silinemedi (Hata: ${response.statusCode})";
+    } catch (e) {
+      return "Sunucu bağlantı hatası.";
+    }
+  }
+
+  // --- TARLA DÜZENLEME (PUT) ---
+  Future<bool> updateFarmField(
+    int farmFieldId,
+    Map<String, dynamic> updatedData,
+  ) async {
+    final token = await _getToken();
+    if (token == null) return false;
+
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/farmfield/$farmFieldId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(updatedData),
+      );
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (e) {
+      return false;
     }
   }
 }

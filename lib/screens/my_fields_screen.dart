@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'add_field_screen.dart';
 import '../services/api_service.dart';
 import '../models/farm_field_model.dart';
+import 'edit_field_screen.dart';
 
 class TarlalarimSayfasi extends StatefulWidget {
   const TarlalarimSayfasi({super.key});
@@ -25,7 +26,7 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
     return Scaffold(
       backgroundColor: Colors.green[50],
       appBar: AppBar(
-        title: const Text("Tarlalarım Listesi DENEMEEEEEE"),
+        title: const Text("Tarlalarım Listesi"),
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
       ),
@@ -45,7 +46,13 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
           final tarlalar = snapshot.data!;
 
           return ListView.builder(
-            padding: const EdgeInsets.all(16.0),
+            // İŞTE BURASI: Alttan ferah ferah 90 piksel boşluk bıraktık! Buton artık kartları ezmeyecek.
+            padding: const EdgeInsets.only(
+              top: 16.0,
+              left: 16.0,
+              right: 16.0,
+              bottom: 90.0,
+            ),
             itemCount: tarlalar.length,
             itemBuilder: (context, index) {
               final tarla = tarlalar[index];
@@ -96,6 +103,24 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
                             Text(tarla.plantName),
                           ],
                         ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.location_on,
+                              size: 16,
+                              color: Colors.green,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              "${tarla.city} / ${tarla.county}",
+                              style: TextStyle(
+                                color: Colors.green[700],
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -105,10 +130,7 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
                       color: Colors.green,
                       size: 28,
                     ),
-                    onPressed: () => _detayPenceresiGoster(
-                      context,
-                      tarla,
-                    ), // Butona basınca detaylar açılacak!
+                    onPressed: () => _detayPenceresiGoster(context, tarla),
                   ),
                 ),
               );
@@ -136,7 +158,6 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
     );
   }
 
-  // BOŞ EKRAN TASARIMI
   Widget _buildEmptyState() {
     return Center(
       child: Padding(
@@ -163,7 +184,6 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
     );
   }
 
-  // --- SULAMA VE FİNANSTAKİ GİBİ ALTTAN AÇILAN DETAY PENCERESİ ---
   void _detayPenceresiGoster(BuildContext context, FarmField tarla) {
     showModalBottomSheet(
       context: context,
@@ -204,7 +224,6 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
                   ],
                 ),
                 const Divider(height: 30),
-
                 _detaySatiri(Icons.label_outline, "Tarla Adı:", tarla.name),
                 const SizedBox(height: 15),
                 _detaySatiri(
@@ -224,9 +243,7 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
                   "Konum:",
                   "${tarla.city} / ${tarla.county}",
                 ),
-
                 const SizedBox(height: 30),
-                // --- SİL, DÜZENLE VE KAPAT BUTONLARI YAN YANA ---
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -269,14 +286,21 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         onPressed: () {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                "Tarla düzenleme formu eklenecek! ✏️",
-                              ),
+                          Navigator.pop(context); // Detay penceresini kapat
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  EditFieldScreen(tarla: tarla),
                             ),
-                          );
+                          ).then((guncellendiMi) {
+                            if (guncellendiMi == true) {
+                              setState(() {
+                                _futureFields = _apiService
+                                    .getFarmFields(); // Listeyi yenile!
+                              });
+                            }
+                          });
                         },
                       ),
                     ),
@@ -325,8 +349,10 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
     );
   }
 
-  // --- TARLA SİLME ONAY PENCERESİ VE İŞLEMİ ---
   void _confirmDelete(BuildContext context, int farmFieldId) {
+    // ScaffoldMessenger'ı pencereler kapanmadan önce güvene alıyoruz ki hata vermesin
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -339,7 +365,7 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
           ],
         ),
         content: const Text(
-          "Bu tarlayı silmek istediğinize emin misiniz? Tarla silindiğinde finans ve sulama kayıtlarınız da arşivlenir (veri kaybı yaşanmaz).",
+          "Bu tarlayı silmek istediğinize emin misiniz? Tarla silindiğinde finans ve sulama kayıtlarınız da arşivlenir.",
         ),
         actions: [
           TextButton(
@@ -361,7 +387,7 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
                 String? error = await _apiService.deleteFarmField(farmFieldId);
 
                 if (error == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     const SnackBar(
                       content: Text("Tarla başarıyla arşive kaldırıldı! 🗑️"),
                       backgroundColor: Colors.green,
@@ -371,12 +397,12 @@ class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
                     _futureFields = _apiService.getFarmFields();
                   });
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(content: Text(error), backgroundColor: Colors.red),
                   );
                 }
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                scaffoldMessenger.showSnackBar(
                   SnackBar(
                     content: Text("Bağlantı Hatası: $e"),
                     backgroundColor: Colors.red,

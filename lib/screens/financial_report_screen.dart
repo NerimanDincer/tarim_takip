@@ -482,6 +482,9 @@ class _FinancialReportScreenState extends State<FinancialReportScreen> {
   }
 
   void _confirmDelete(BuildContext context, Map<String, dynamic> item) {
+    // 1. SİHİRLİ DOKUNUŞ: Pencereler kapanmadan önce mesajcıyı güvene alıyoruz!
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -510,7 +513,7 @@ class _FinancialReportScreenState extends State<FinancialReportScreen> {
             ),
             onPressed: () async {
               Navigator.pop(ctx);
-              Navigator.pop(context);
+              Navigator.pop(context); // Pencereler kapandı
 
               int recordId = int.tryParse(item['id'].toString()) ?? 0;
               if (recordId == 0) return;
@@ -524,7 +527,8 @@ class _FinancialReportScreenState extends State<FinancialReportScreen> {
                 }
 
                 if (error == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  // 2. Artık context'i değil, güvene aldığımız scaffoldMessenger'ı kullanıyoruz
+                  scaffoldMessenger.showSnackBar(
                     const SnackBar(
                       content: Text(
                         "Kayıt başarıyla çöp kutusuna taşındı! 🗑️",
@@ -532,16 +536,20 @@ class _FinancialReportScreenState extends State<FinancialReportScreen> {
                       backgroundColor: Colors.blueGrey,
                     ),
                   );
+
+                  // 3. Kod artık kırılmadığı için buraya paşalar gibi ulaşacak ve ekran ANINDA yenilenecek!
                   setState(() {
                     _loadAllData();
-                  }); // GİR-ÇIK YAPMADAN ANINDA YENİLER!
+                    // NOT: Eğer ekranda FutureBuilder kullanıyorsan, burayı
+                    // _futureFinans = _loadAllData(); şeklinde değiştirmen gerekebilir.
+                  });
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(content: Text(error), backgroundColor: Colors.red),
                   );
                 }
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                scaffoldMessenger.showSnackBar(
                   SnackBar(
                     content: Text("Bağlantı Hatası: $e"),
                     backgroundColor: Colors.red,

@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'models/farm_field_model.dart';
 import 'services/api_service.dart';
+
+import 'screens/my_fields_screen.dart';
 import 'screens/add_field_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/irrigation_screen.dart';
 import 'screens/add_product_screen.dart';
 import 'screens/irrigation_list_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/financial_report_screen.dart';
+import 'screens/fertilization_list_screen.dart';
 
 void main() {
   runApp(const TarimTakipApp());
@@ -503,6 +507,13 @@ class _AnaSayfaState extends State<AnaSayfa> {
                 builder: (context) => const FinancialReportScreen(),
               ),
             );
+          } else if (baslik == "Gübreleme") {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const FertilizationListScreen(),
+              ),
+            );
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text("$baslik sayfası yakında eklenecek! 🚜")),
@@ -520,113 +531,6 @@ class _AnaSayfaState extends State<AnaSayfa> {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class TarlalarimSayfasi extends StatefulWidget {
-  const TarlalarimSayfasi({super.key});
-  @override
-  State<TarlalarimSayfasi> createState() => _TarlalarimSayfasiState();
-}
-
-class _TarlalarimSayfasiState extends State<TarlalarimSayfasi> {
-  final ApiService _apiService = ApiService();
-  late Future<List<FarmField>> _futureFields;
-
-  @override
-  void initState() {
-    super.initState();
-    _futureFields = _apiService.getFarmFields();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.green[50], // Tema bütünlüğü için yeşil yaptık
-      appBar: AppBar(
-        title: const Text('Tarlalarım Listesi'),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-      ),
-      body: FutureBuilder<List<FarmField>>(
-        future: _futureFields,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.green),
-            );
-          } else if (snapshot.hasError) {
-            return Center(child: Text("Hata: ${snapshot.error}"));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.grass, size: 80, color: Colors.grey),
-                    const SizedBox(height: 20),
-                    const Text(
-                      "Henüz hiç tarla eklememişsiniz.",
-                      style: TextStyle(fontSize: 18, color: Colors.black54),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      "Sağ alttaki butona tıklayarak ilk tarlanızı sisteme kaydedebilirsiniz! 🌱",
-                      style: TextStyle(fontSize: 14, color: Colors.green),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          } else {
-            return ListView.builder(
-              itemCount: snapshot.data!.length,
-              padding: const EdgeInsets.all(10),
-              itemBuilder: (context, index) {
-                var tarla = snapshot.data![index];
-                return Card(
-                  elevation: 3,
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: Colors.green[100],
-                      child: const Icon(Icons.grass, color: Colors.green),
-                    ),
-                    title: Text(
-                      tarla.name,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(
-                      "${tarla.city} / ${tarla.county} - ${tarla.plantName}",
-                    ),
-                    trailing: Text("${tarla.area} Dönüm"),
-                  ),
-                );
-              },
-            );
-          }
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          // AWAIT İLE SAYFANIN KAPANMASINI BEKLİYORUZ (YENİLENMEME SORUNU ÇÖZÜLDÜ!)
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddFieldScreen()),
-          );
-
-          // Geri dönüldüğünde listeyi hemen güncelle!
-          setState(() {
-            _futureFields = _apiService.getFarmFields();
-          });
-        },
-        backgroundColor: Colors.green,
-        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
